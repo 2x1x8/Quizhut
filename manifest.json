@@ -5,7 +5,6 @@
   "description": "Ask questions and get answers from an AI model.",
   "permissions": [],
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_popup": "popup.html"
   }
 }
