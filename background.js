@@ -1,16 +1,16 @@
 async function askAI(prompt) {
-  const apiKey = "sk-2ef0ffd6819a4e71bb135a220a32ac9b"; // ← Put your API key using chrome.storage later
+  const apiKey = "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"; // ← Put your API key using chrome.storage later
 
   if (!apiKey) {
     return "Error: API key not found. Set it using chrome.storage.";
   }
 
   try {
-  const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+  const res = await fetch("https://api.groq.com/openai/v1", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "Bearer sk-2ef0ffd6819a4e71bb135a220a32ac9b"
+      "Authorization": "Bearer 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"
     },
     body: JSON.stringify({
       model: "deepseek-chat",

@@ -7,7 +7,7 @@
   "permissions": ["storage"],
 
   "host_permissions": [
-    "https://api.deepseek.com/*"
+    "https://api.groq.com/openai/v1/*"
   ],
 
   "background": {
