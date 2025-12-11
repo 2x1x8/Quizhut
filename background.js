@@ -6,7 +6,7 @@ async function askAI(prompt) {
   }
 
   try {
-  const res = await fetch("https://api.groq.com/openai/v1", {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
