@@ -13,7 +13,7 @@ async function askAI(prompt) {
       "Authorization": "Bearer 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"
     },
     body: JSON.stringify({
-      model: "deepseek-chat",
+      model: "llama-3.1-8b-instant",
       messages: [
         { role: "user", content: prompt }
       ]
