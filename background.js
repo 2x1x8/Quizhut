@@ -3,7 +3,7 @@ async function askAI(prompt) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "sk-2ef0ffd6819a4e71bb135a220a32ac9b"
+      "Authorization": "Bearer sk-2ef0ffd6819a4e71bb135a220a32ac9b"
     },
     body: JSON.stringify({
       model: "gpt-4o-mini",
