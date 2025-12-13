@@ -2,17 +2,414 @@
 <html>
 <head>
   <style>
-    body { font-family: Arial; width: 300px; padding: 10px; }
-    textarea { width: 100%; height: 80px; }
-    #output { margin-top: 10px; white-space: pre-wrap; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      width: 500px; 
+      max-height: 600px;
+      padding: 15px;
+      margin: 0;
+      background: #f5f7fa;
+      color: #333;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .section {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h3 {
+      margin: 0 0 15px 0;
+      color: #2d3748;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 80px;
+      padding: 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    
+    .btn {
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+      margin: 5px 0;
+      width: 100%;
+    }
+    
+    .btn:hover {
+      background: #3182ce;
+    }
+    
+    .btn-scan {
+      background: #48bb78;
+    }
+    
+    .btn-scan:hover {
+      background: #38a169;
+    }
+    
+    .btn-load {
+      background: #ed8936;
+    }
+    
+    .btn-load:hover {
+      background: #dd6b20;
+    }
+    
+    .btn-secondary {
+      background: #a0aec0;
+    }
+    
+    .btn-secondary:hover {
+      background: #718096;
+    }
+    
+    .btn-get-answer {
+      background: #4299e1;
+    }
+    
+    .btn-get-answer:hover {
+      background: #3182ce;
+    }
+    
+    .btn-select-answer {
+      background: #48bb78;
+    }
+    
+    .btn-select-answer:hover {
+      background: #38a169;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .btn-group .btn {
+      flex: 1;
+    }
+    
+    #output {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .question-item {
+      background: #f8fafc;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #4299e1;
+    }
+    
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .question-text {
+      margin: 10px 0;
+      color: #4a5568;
+      line-height: 1.5;
+      font-size: 14px;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .answers {
+      margin: 15px 0;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .answer-option {
+      padding: 8px;
+      margin: 5px 0;
+      background: #f1f5f9;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+    }
+    
+    .answer-option:hover {
+      background: #e2e8f0;
+    }
+    
+    .answer-option input[type="radio"] {
+      margin-right: 10px;
+    }
+    
+    .answer-option label {
+      cursor: pointer;
+      flex: 1;
+      font-size: 13px;
+    }
+    
+    .ai-answer {
+      margin: 10px 0;
+      padding: 10px;
+      background: #e6fffa;
+      border: 1px solid #81e6d9;
+      border-radius: 4px;
+      color: #234e52;
+      font-size: 13px;
+    }
+    
+    .status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status.pending { background: #fed7d7; color: #9b2c2c; }
+    .status.processing { background: #feebc8; color: #744210; }
+    .status.answered { background: #c6f6d5; color: #22543d; }
+    .status.cached { background: #bee3f8; color: #2a4365; }
+    .status.manual { background: #e9d8fd; color: #44337a; }
+    .status.error { background: #fed7d7; color: #9b2c2c; }
+    .status.ready { background: #bee3f8; color: #2a4365; }
+    .status.selected { background: #e9d8fd; color: #44337a; }
+    .status.submitted { background: #c6f6d5; color: #22543d; }
+    
+    .answer-display {
+      padding: 10px;
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    
+    #questionsContainer {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding-right: 5px;
+    }
+    
+    #questionsContainer::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #questionsContainer::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    #questionsContainer::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    
+    #questionsContainer::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 15px;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    
+    .tab.active {
+      border-bottom-color: #4299e1;
+      color: #4299e1;
+      font-weight: 600;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .instructions {
+      background: #e6fffa;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      border-left: 4px solid #38b2ac;
+    }
+    
+    .instructions ul {
+      margin: 5px 0;
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin: 3px 0;
+    }
+    
+    .api-status {
+      background: #e6fffa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 4px solid #38b2ac;
+    }
+    
+    .error-message {
+      background: #fee;
+      color: #c00;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .success-message {
+      background: #dfd;
+      color: #080;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
-  <h3>AI Prompt</h3>
-  <textarea id="prompt"></textarea>
-  <button id="send">Send</button>
-  <div id="output"></div>
+  <div class="container">
+    <div class="header">
+      <h2>🎓 AI Quiz Assistant</h2>
+      <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">Extract and answer quiz questions</p>
+    </div>
+    
+    <!-- API Status Section -->
+    <div class="api-status">
+      <h3 style="color: #38b2ac; border-bottom: none; margin-bottom: 10px;">✅ API Ready</h3>
+      <p style="margin: 0; color: #234e52;">The AI assistant is pre-configured and ready to use!</p>
+    </div>
+    
+    <!-- Main Section -->
+    <div class="section">
+      <div class="tabs">
+        <div class="tab active" data-tab="auto">Auto Quiz</div>
+        <div class="tab" data-tab="manual">Manual Ask</div>
+      </div>
+      
+      <!-- Auto Quiz Tab -->
+      <div id="autoTab" class="tab-content active">
+        <div class="instructions">
+          <strong>Instructions:</strong>
+          <ul>
+            <li>Navigate to your quiz/test page</li>
+            <li>Click "Scan Page" to extract all questions and answers</li>
+            <li>Questions and answer options will appear below</li>
+            <li>Use "Get AI Answer" to get AI suggestions</li>
+            <li>Use "Select This Answer" to choose answer on webpage</li>
+          </ul>
+        </div>
+        
+        <div class="btn-group">
+          <button id="scan" class="btn btn-scan">🔍 Scan Page</button>
+          <button id="loadQuestions" class="btn btn-load">📋 Load Questions</button>
+        </div>
+        
+        <div id="questionsContainer">
+          <p style="text-align: center; color: #718096; padding: 20px;">
+            Questions will appear here when you scan a quiz page
+          </p>
+        </div>
+      </div>
+      
+      <!-- Manual Ask Tab -->
+      <div id="manualTab" class="tab-content">
+        <p>Ask the AI any question:</p>
+        <textarea id="prompt" placeholder="Type your question here..."></textarea>
+        <button id="process" class="btn">Get AI Answer</button>
+        <div id="output"></div>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 10px; color: #a0aec0; font-size: 12px;">
+      Questions are cached locally for faster answering
+    </div>
+  </div>
 
   <script src="popup.js"></script>
+  
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and contents
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        tab.classList.add('active');
+        const tabName = tab.dataset.tab;
+        document.getElementById(`${tabName}Tab`).classList.add('active');
+      });
+    });
+  </script>
 </body>
 </html>
