@@ -4,87 +4,13 @@ let currentQuestions = [];
 
 // Function to extract all questions from the page
 function extractAllQuestions() {
-  const questions = [];
-  
-  // Try different selectors for different LMS systems
-  const questionSelectors = [
-    '.question_text',
-    '.question-text',
-    '.que',
-    '.que_text',
-    '[id*="question"]',
-    '.qtext',
-    '.question',
-    'p:has(strong)',
-    'div:has(> strong)',
-    'li:has(strong)',
-    'td:has(strong)'
-  ];
-  
-  let questionId = 0;
-  
-  questionSelectors.forEach(selector => {
-    try {
-      document.querySelectorAll(selector).forEach((q) => {
-        const questionText = getFullText(q).replace(/\u00A0/g, ' ').trim();
-        if (questionText && questionText.length > 10 && !questions.some(qt => qt.text === questionText)) {
-          questions.push({
-            id: `q${questionId++}`,
-            text: questionText,
-            element: q,
-            answers: []
-          });
-        }
-      });
-    } catch (e) {
-      console.log(`Selector ${selector} failed:`, e);
-    }
-  });
-  
-  // Extract answers for each question
-  questions.forEach((q) => {
-    // Find answer elements near the question
-    const answerSelectors = [
-      '.answer',
-      '.answer_label',
-      '.answertext',
-      '.r0, .r1',
-      '[class*="answer"]',
-      'input[type="radio"] + label, input[type="checkbox"] + label',
-      'input[type="radio"]',
-      'input[type="checkbox"]',
-      'label:has(input[type="radio"]), label:has(input[type="checkbox"])'
-    ];
-    
-    // First try to find answers in the same container
-    let container = q.element;
-    for (let i = 0; i < 3; i++) {
-      container = container.parentElement;
-      if (!container) break;
-      
-      answerSelectors.forEach(selector => {
-        try {
-          const answers = container.querySelectorAll(selector);
-          answers.forEach((ans) => {
-            const answerText = getAnswerText(ans);
-            if (answerText && answerText.length > 0 && !q.answers.some(a => a.text === answerText)) {
-              q.answers.push({
-                text: answerText,
-                element: ans,
-                input: ans.type === 'radio' || ans.type === 'checkbox' ? ans : 
-                       ans.querySelector('input[type="radio"], input[type="checkbox"]') ||
-                       ans.previousElementSibling?.type === 'radio' || 
-                       ans.previousElementSibling?.type === 'checkbox' ? 
-                       ans.previousElementSibling : null
-              });
-            }
-          });
-        } catch (e) {
-          // Continue with next selector
-        }
-      });
-    }
-  });
+  const questions_elements = document.querySelectorAll(".question");
+  const questions = Array.from(questions_elements, q => ({
+    id: q.querySelector(".question_name").innerText.slice(9),
+    question: q.querySelector(".question_text").innerText,
+    element: q,
+    answers: Array.from(q.querySelectorAll(".answer"), a => (a.innerText))
+  }));
   
   return questions;
 }
