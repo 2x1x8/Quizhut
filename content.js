@@ -7,9 +7,13 @@ function extractAllQuestions() {
   const questions_elements = document.querySelectorAll(".question");
   const questions = Array.from(questions_elements, q => ({
     id: parseInt(q.querySelector(".question_name").innerText.slice(9), 10),
-    question: q.querySelector(".question_text").innerText,
+    text: q.querySelector(".question_text").innerText,
     element: q,
-    answers: Array.from(q.querySelectorAll(".answer"), a => (a.innerText))
+    answers: Array.from(q.querySelectorAll(".answer"), a => ({
+      text: a.innerText,
+      element: a,
+      input: a.querySelector('input[type="radio"], input[type="checkbox"]')
+    }))
   }));
   
   return questions;
