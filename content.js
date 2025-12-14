@@ -7,7 +7,7 @@ function extractAllQuestions() {
   const questions_elements = document.querySelectorAll(".question");
   const questions = Array.from(questions_elements, q => ({
     id: q.querySelector(".question_name").innerText.slice(9),
-    question: q.querySelector(".question_text").innerText,
+    question: parseInt(q.querySelector(".question_text").innerText, 10),
     element: q,
     answers: Array.from(q.querySelectorAll(".answer"), a => (a.innerText))
   }));
