@@ -3,6 +3,7 @@ let currentQuestions = [];
 // Scan page button - now just loads questions without AI processing
 document.getElementById("scan").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    console.log(tabs[0]);
     chrome.tabs.sendMessage(tabs[0].id, { action: "scanPage" }, (response) => {
       if (chrome.runtime.lastError) {
         showError("Please refresh the quiz page and try again.");
@@ -23,38 +24,13 @@ document.getElementById("scan").addEventListener("click", () => {
   });
 });
 
-// Manual question processing
-document.getElementById("process").addEventListener("click", async () => {
-  const prompt = document.getElementById("prompt").value;
-  if (!prompt.trim()) {
-    showError("Please enter a question");
-    return;
-  }
-
-  document.getElementById("output").innerHTML = "Processing...";
-  
-  chrome.runtime.sendMessage({ action: "ask", prompt }, (response) => {
-    if (response?.answer) {
-      document.getElementById("output").innerHTML = 
-        `<strong>Answer:</strong><br>${response.answer}`;
-    } else {
-      showError("Failed to get answer");
-    }
-  });
-});
 
 // Load questions button
-document.getElementById("loadQuestions").addEventListener("click", () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
-      if (response?.questions) {
-        displayQuestions(response.questions);
-        showSuccess(`Loaded ${response.questions.length} question(s)`);
-      } else {
-        showError("No questions found. Make sure you're on a quiz page.");
-      }
-    });
-  });
+document.getElementById("answerAll").addEventListener("click", () => { 
+  console.log(currentQuestions); 
+  currentQuestions.forEach((q, index) => { 
+    getAIAnswerForQuestion(index);
+  }); 
 });
 
 // Display questions in the popup
@@ -131,14 +107,15 @@ function displayQuestions(questions) {
 // Get AI answer for specific question
 function getAIAnswerForQuestion(index) {
   const question = currentQuestions[index];
+  console.log("abcd");
   if (!question) return;
-  
   document.getElementById(`status${index}`).textContent = "Processing...";
   document.getElementById(`status${index}`).className = "status processing";
   
   const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer text or letter.`;
   
   chrome.runtime.sendMessage({ action: "ask", prompt }, (response) => {
+    console.log("afg");
     if (response?.answer) {
       document.getElementById(`aiAnswer${index}`).innerHTML = 
         `<strong>AI Answer:</strong> ${response.answer}`;
@@ -148,13 +125,17 @@ function getAIAnswerForQuestion(index) {
       // Auto-select the matching answer option if found
       const answerText = response.answer.toLowerCase();
       const answerOptions = document.querySelectorAll(`.answer-option[data-q="${index}"]`);
-      answerOptions.forEach((option, optionIndex) => {
+      console.log(answerOptions[0]);
+      answerOptions.forEach((option) => {
         const labelText = option.querySelector('label').textContent.toLowerCase();
         if (labelText.includes(answerText) || answerText.includes(labelText)) {
           option.querySelector('input[type="radio"]').checked = true;
+          console.log(`selected ${index}`);
+          selectAnswerForQuestion(index);
         }
       });
     } else {
+      console.log("No answer received from AI");
       document.getElementById(`status${index}`).textContent = "Error";
       document.getElementById(`status${index}`).className = "status error";
     }
@@ -169,7 +150,7 @@ function selectAnswerForQuestion(index) {
   // Find selected answer
   const selectedOption = document.querySelector(`input[name="q${index}"]:checked`);
   if (!selectedOption) {
-    showError("Please select an answer first");
+    console.log("No answer selected");
     return;
   }
   
@@ -185,11 +166,12 @@ function selectAnswerForQuestion(index) {
       if (response?.success) {
         document.getElementById(`status${index}`).textContent = "Submitted";
         document.getElementById(`status${index}`).className = "status answered";
-        showSuccess("Answer submitted to webpage");
       } else {
         showError("Failed to submit answer");
       }
     });
+
+    
   });
 }
 
@@ -282,15 +264,17 @@ function showSuccess(message) {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("Popup loadd");
   // Always show main section since API key is hardcoded
   document.querySelector('.api-status').style.display = 'block';
-  document.getElementById("mainSection").style.display = "block";
   
   // Check if we're on a quiz page by scanning for questions
   setTimeout(() => {
+    console.log("Checking for quiz questions on page...");
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
         if (response?.questions && response.questions.length > 0) {
+          console.log("Quiz questions detected on page");
           displayQuestions(response.questions);
         }
       });
