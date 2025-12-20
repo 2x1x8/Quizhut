@@ -381,12 +381,6 @@
       </div>
       
       <!-- Manual Ask Tab -->
-      <div id="manualTab" class="tab-content">
-        <p>Ask the AI any question:</p>
-        <textarea id="prompt" placeholder="Type your question here..."></textarea>
-        <button id="process" class="btn">Get AI Answer</button>
-        <div id="output"></div>
-      </div>
     </div>
     
     <div style="text-align: center; margin-top: 10px; color: #a0aec0; font-size: 12px;">
@@ -396,20 +390,5 @@
 
   <script src="popup.js"></script>
   
-  <script>
-    // Tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        // Remove active class from all tabs and contents
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        // Add active class to clicked tab and corresponding content
-        tab.classList.add('active');
-        const tabName = tab.dataset.tab;
-        document.getElementById(`${tabName}Tab`).classList.add('active');
-      });
-    });
-  </script>
 </body>
 </html>
