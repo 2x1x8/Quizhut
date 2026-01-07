@@ -1,6 +1,5 @@
 let currentQuestions = [];
-
-// Scan page button - now just loads questions without AI processing
+console.log("gg mrbeast")
 document.getElementById("scan").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     console.log(tabs[0]);
@@ -8,7 +7,6 @@ document.getElementById("scan").addEventListener("click", () => {
       if (chrome.runtime.lastError) {
         showError("Please refresh the quiz page and try again.");
       } else {
-        // After scanning, load the questions to display in GUI
         setTimeout(() => {
           chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
             if (response?.questions) {
@@ -170,8 +168,6 @@ function selectAnswerForQuestion(index) {
         showError("Failed to submit answer");
       }
     });
-
-    
   });
 }
 
@@ -182,85 +178,7 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Listen for updates from background/content scripts
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === "updateQuestions") {
-    // This is called when questions are auto-answered
-    updateQuestionsDisplay(request.questions);
-  } else if (request.action === "updateAnswer") {
-    updateAnswerDisplay(request.questionIndex, request.answer);
-  } else if (request.action === "processingProgress") {
-    updateProgress(request.current, request.total, request.question, request.answer);
-  }
-});
 
-// Helper functions
-function updateQuestionsDisplay(questions) {
-  const container = document.getElementById("questionsContainer");
-  container.innerHTML = "";
-  
-  questions.forEach((q, index) => {
-    const questionDiv = document.createElement("div");
-    questionDiv.className = "question-item";
-    questionDiv.innerHTML = `
-      <div class="question-header">
-        <strong>Q${index + 1}:</strong>
-        <span class="status ${q.cached ? 'cached' : 'processing'}">
-          ${q.cached ? 'Cached' : 'Processing...'}
-        </span>
-      </div>
-      <p>${q.question.substring(0, 120)}...</p>
-      <div class="answer-display">
-        <strong>Answer:</strong> ${q.answer}
-      </div>
-    `;
-    container.appendChild(questionDiv);
-  });
-}
-
-function updateAnswerDisplay(index, answer) {
-  const statusEl = document.getElementById(`status${index}`);
-  const answerEl = document.getElementById(`aiAnswer${index}`);
-  
-  if (statusEl) {
-    statusEl.textContent = "Answered";
-    statusEl.className = "status answered";
-  }
-  
-  if (answerEl) {
-    answerEl.innerHTML = `<strong>AI Answer:</strong> ${answer}`;
-  }
-}
-
-function updateProgress(current, total, question, answer) {
-  console.log(`Processed ${current}/${total}: ${answer}`);
-}
-
-function showError(message) {
-  const errorDiv = document.createElement("div");
-  errorDiv.className = "error-message";
-  errorDiv.textContent = message;
-  errorDiv.style.cssText = "background: #fee; color: #c00; padding: 10px; margin: 10px 0; border-radius: 4px;";
-  
-  const output = document.getElementById("output");
-  output.innerHTML = "";
-  output.appendChild(errorDiv);
-  
-  setTimeout(() => errorDiv.remove(), 5000);
-}
-
-function showSuccess(message) {
-  const successDiv = document.createElement("div");
-  successDiv.className = "success-message";
-  successDiv.textContent = message;
-  successDiv.style.cssText = "background: #dfd; color: #080; padding: 10px; margin: 10px 0; border-radius: 4px;";
-  
-  const output = document.getElementById("output");
-  output.innerHTML = "";
-  output.appendChild(successDiv);
-  
-  setTimeout(() => successDiv.remove(), 3000);
-}
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {

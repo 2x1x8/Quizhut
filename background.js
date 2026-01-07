@@ -18,12 +18,12 @@ async function askAI(prompt) {
         messages: [
           { 
             role: "system", 
-            content: "You are a quiz assistant. Answer questions concisely and accurately. For multiple choice, provide just the letter or exact answer text." 
+            content: "You are a quiz assistant. Answer questions concisely and accurately. For multiple choice, provide the  exact answer text." 
           },
           { role: "user", content: prompt }
         ],
         temperature: 0.1,
-        max_tokens: 100
+        max_tokens: 1000
       })
     });
 
@@ -53,7 +53,7 @@ async function processQuizQuestions(questions) {
   // Process questions in batches to avoid rate limits
   for (let i = 0; i < questions.length; i++) {
     const question = questions[i];
-    const prompt = `Answer this quiz question concisely: "${question}". If it's multiple choice, just provide the correct letter or exact answer text.`;
+    const prompt = `Answer this quiz question concisely: "${question}". If it's multiple choice, just provide the exact answer text.`;
     
     try {
       const answer = await askAI(prompt);
