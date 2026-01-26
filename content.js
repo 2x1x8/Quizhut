@@ -6,7 +6,6 @@ let currentQuestions = [];
 function extractAllQuestions() {
   const questions_elements = document.querySelectorAll(".question");
   const questions = Array.from(questions_elements, q => ({
-    id: parseInt(q.querySelector(".question_name").innerText.slice(9), 10),
     text: q.querySelector(".question_text").innerText,
     element: q,
     answers: Array.from(q.querySelectorAll(".answer"), a => ({
@@ -20,52 +19,10 @@ function extractAllQuestions() {
 }
 
 // Helper function to get full text including nested elements
-function getFullText(element) {
-  if (!element) return '';
-  
-  // Clone to avoid modifying original
-  const clone = element.cloneNode(true);
-  
-  // Remove script and style elements
-  clone.querySelectorAll('script, style').forEach(el => el.remove());
-  
-  // Get text content
-  return clone.textContent || clone.innerText || '';
-}
+
 
 // Helper function to get answer text
-function getAnswerText(element) {
-  if (!element) return '';
-  
-  // If it's an input element, get the label text
-  if (element.type === 'radio' || element.type === 'checkbox') {
-    // Try to find associated label
-    const id = element.id;
-    if (id) {
-      const label = document.querySelector(`label[for="${id}"]`);
-      if (label) return getFullText(label).trim();
-    }
-    
-    // Try next sibling label
-    let sibling = element.nextElementSibling;
-    while (sibling) {
-      if (sibling.tagName === 'LABEL') {
-        return getFullText(sibling).trim();
-      }
-      sibling = sibling.nextElementSibling;
-    }
-    
-    // Try parent element
-    if (element.parentElement.tagName === 'LABEL') {
-      return getFullText(element.parentElement).replace(getFullText(element), '').trim();
-    }
-    
-    return '';
-  }
-  
-  // If it's already a label or other element
-  return getFullText(element).trim();
-}
+
 
 // Function to scan page and extract questions (without auto-answering)
 function scanPageForQuestions() {
@@ -122,7 +79,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       question: q.text,
       answers: q.answers.map(a => a.text)
     }));
-    sendResponse({ questions: simplified });
+    sendResponse({ 
+      instruction: document.querySelector("#quiz-instructions ")?.innerText || "",
+      questions: simplified });
   } else if (request.action === "answerQuestion") {
     const { questionIndex, answer } = request;
     const result = selectAnswer(questionIndex, answer);

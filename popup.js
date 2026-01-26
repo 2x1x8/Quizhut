@@ -1,5 +1,6 @@
 let currentQuestions = [];
-console.log("gg mrbeast")
+let instruction = "";
+console.log("ngu a")
 document.getElementById("scan").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     console.log(tabs[0]);
@@ -45,6 +46,7 @@ function displayQuestions(questions) {
   questions.forEach((q, index) => {
     const questionDiv = document.createElement("div");
     questionDiv.className = "question-item";
+    console.log(q.question)
     questionDiv.innerHTML = `
       <div class="question-header">
         <strong>Question ${index + 1}:</strong>
@@ -107,12 +109,10 @@ function getAIAnswerForQuestion(index) {
   const question = currentQuestions[index];
   console.log("abcd");
   if (!question) return;
-  document.getElementById(`status${index}`).textContent = "Processing...";
-  document.getElementById(`status${index}`).className = "status processing";
   
   const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer text or letter.`;
   
-  chrome.runtime.sendMessage({ action: "ask", prompt }, (response) => {
+  chrome.runtime.sendMessage({ action: "ask", instruction: instruction, prompt: prompt }, (response) => {
     console.log("afg");
     if (response?.answer) {
       document.getElementById(`aiAnswer${index}`).innerHTML = 
@@ -182,17 +182,15 @@ function escapeHtml(text) {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("Popup loadd");
   // Always show main section since API key is hardcoded
   document.querySelector('.api-status').style.display = 'block';
   
   // Check if we're on a quiz page by scanning for questions
   setTimeout(() => {
-    console.log("Checking for quiz questions on page...");
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
+        instruction = response.instruction;
         if (response?.questions && response.questions.length > 0) {
-          console.log("Quiz questions detected on page");
           displayQuestions(response.questions);
         }
       });
