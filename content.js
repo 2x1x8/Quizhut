@@ -1,7 +1,8 @@
 // Store for previously answered questions
 let answerHistory = new Map(JSON.parse(localStorage.getItem("cheat") || "[]"));
 let currentQuestions = [];
-
+console.log('v2')
+const textBox = document.querySelector('#tinymce, p');
 // Function to extract all questions from the page
 function extractAllQuestions() {
   const questions_elements = document.querySelectorAll(".question");

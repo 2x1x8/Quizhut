@@ -15,7 +15,7 @@ async function askAI(instruction, prompt) {
         messages: [
           { 
             role: "system", 
-            content: `You are a quiz assistant. Answer questions concisely and accurately. For multiple choice, provide the  exact answer text. ${instruction}`
+            content: `You are a quiz assistant. Provide the index of correct answer text (for example: 5, 6,...). If no answer is provided, provide your own answer. ${instruction}`
 
           },
           { role: "user", content: prompt }
@@ -26,7 +26,7 @@ async function askAI(instruction, prompt) {
     });
 
     const data = await res.json();
-    console.log("AI Response:", data);
+    console.log("AI Response:", data.choices[0].message.content.trim());
     if (!data.choices || !data.choices[0]) {
       console.error("API Error:", data);
       return "Error: " + (data.error?.message || "Unknown API error");

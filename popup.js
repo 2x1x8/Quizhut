@@ -110,7 +110,7 @@ function getAIAnswerForQuestion(index) {
   console.log("abcd");
   if (!question) return;
   
-  const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer text or letter.`;
+  const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer index (numbers like 1,2,3).`;
   
   chrome.runtime.sendMessage({ action: "ask", instruction: instruction, prompt: prompt }, (response) => {
     console.log("afg");
@@ -121,17 +121,10 @@ function getAIAnswerForQuestion(index) {
       document.getElementById(`status${index}`).className = "status answered";
       
       // Auto-select the matching answer option if found
-      const answerText = response.answer.toLowerCase();
+      const answerIndex = parseInt(response.answer) - 1;
       const answerOptions = document.querySelectorAll(`.answer-option[data-q="${index}"]`);
-      console.log(answerOptions[0]);
-      answerOptions.forEach((option) => {
-        const labelText = option.querySelector('label').textContent.toLowerCase();
-        if (labelText.includes(answerText) || answerText.includes(labelText)) {
-          option.querySelector('input[type="radio"]').checked = true;
-          console.log(`selected ${index}`);
-          selectAnswerForQuestion(index);
-        }
-      });
+      answerOptions[answerIndex].querySelector('input[type="radio"]').checked = true;
+      selectAnswerForQuestion(index);
     } else {
       console.log("No answer received from AI");
       document.getElementById(`status${index}`).textContent = "Error";
@@ -177,7 +170,6 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
 
 
 // Initialize
