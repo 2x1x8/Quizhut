@@ -1,28 +1,81 @@
+const QUESTION_BUILDER = {
+  MCQ(q) {
+    return {
+            type: "MCQ",
+            text: q.querySelector(".question_text").innerText,
+            element: q,
+            answers: Array.from(q.querySelectorAll(".answer"), a => ({
+                text: a.innerText,
+                element: a,
+                input: a.querySelector('input[type="radio"]')
+            })),
+            prompt: `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ')}. Provide only the correct answer index (numbers like 1,2,3).`
+        };
+  },
+
+  checkBox(q) {
+    return {
+        type: "checkBox",
+        text: q.querySelector(".question_text").innerText,
+        element: q,
+        answers: Array.from(q.querySelectorAll(".answer"), a => ({
+            text: a.innerText,
+            element: a,
+            input: a.querySelector('input[type="checkbox"]')
+        })),
+        prompt: `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ')}. Provide one or multiple correct answer index (numbers like 1,2,3) in square brackets like [1,2].`
+    };
+    },
+  other(q){
+    return {
+        type: "other",
+        text: q.querySelector(".question_text").innerText,
+        element: q,
+        answers: Array.from(q.querySelectorAll(".answer"), a => ({
+            text: a.innerText,
+            element: a,
+        }))
+    };
+  }
+};
+const serializer = {
+  MCQ: currentQuestions.map(q => ({
+      question: q.text,
+      answers: q.answers.map(a => a.text),
+      prompt: q.prompt
+    })),
+  checkBox: currentQuestions.map(q => ({
+      question: q.text,
+      answers: q.answers.map(a => a.text),
+      prompt: q.prompt
+    })),
+  other: currentQuestions.map(q => ({
+      question: q.text,
+      answers: q.answers.map(a => a.text),
+      prompt: q.prompt
+    })),
+};
+
 // Store for previously answered questions
-let answerHistory = new Map(JSON.parse(localStorage.getItem("cheat") || "[]"));
 let currentQuestions = [];
 console.log('v2')
-const textBox = document.querySelector('#tinymce, p');
 // Function to extract all questions from the page
+
+ 
+function questionFactory(q) {
+  if (q.querySelectorAll('input[type="radio"]').length > 0) return QUESTION_BUILDER.MCQ(q);
+  if (q.querySelectorAll('input[type="checkbox"]').length > 0) return QUESTION_BUILDER.checkBox(q);
+  return QUESTION_BUILDER.other(q);
+}
+
+
 function extractAllQuestions() {
   const questions_elements = document.querySelectorAll(".question");
-  const questions = Array.from(questions_elements, q => ({
-    text: q.querySelector(".question_text").innerText,
-    element: q,
-    answers: Array.from(q.querySelectorAll(".answer"), a => ({
-      text: a.innerText,
-      element: a,
-      input: a.querySelector('input[type="radio"], input[type="checkbox"]')
-    }))
-  }));
-  
+  const questions = Array.from(questions_elements, q => questionFactory(q));
   return questions;
 }
 
 // Helper function to get full text including nested elements
-
-
-// Helper function to get answer text
 
 
 // Function to scan page and extract questions (without auto-answering)
@@ -76,19 +129,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse(result);
   } else if (request.action === "getQuestions") {
     currentQuestions = extractAllQuestions();
-    const simplified = currentQuestions.map(q => ({
-      question: q.text,
-      answers: q.answers.map(a => a.text)
-    }));
     sendResponse({ 
       instruction: document.querySelector("#quiz-instructions ")?.innerText || "",
-      questions: simplified });
-  } else if (request.action === "answerQuestion") {
+      questions: currentQuestions.map(q => serializer[q.type]?.(q) || q)
+  })} else if (request.action === "answerQuestion") {
     const { questionIndex, answer } = request;
     const result = selectAnswer(questionIndex, answer);
     if (result.success) {
-      answerHistory.set(currentQuestions[questionIndex].text, answer);
-      localStorage.setItem("cheat", JSON.stringify(Array.from(answerHistory.entries())));
     }
     sendResponse(result);
   }
@@ -110,6 +157,7 @@ if (document.readyState === 'loading') {
   setTimeout(() => {
     currentQuestions = extractAllQuestions();
     if (currentQuestions.length > 0) {
+      console.log(QUESTION_BUILDER.MCQ(document.querySelector(".question")))
       console.log(`Page loaded with ${currentQuestions.length} question(s)`);
     }
   }, 500);

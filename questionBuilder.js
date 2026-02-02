@@ -1,4 +1,4 @@
-export const VEHICLE_BUILDERS = {
+export const QUESTION_BUILDER = {
   MCQ(q) {
     return {
             text: q.querySelector(".question_text").innerText,
