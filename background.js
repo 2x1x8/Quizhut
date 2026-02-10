@@ -40,14 +40,25 @@ async function askAI(instruction, prompt) {
   }
 }
 
+function sendAnsToContent(ans) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, {
+      action: "answerQuestion",
+      questionIndex: index,
+      answer: JSON.parse(ans)
+    });
+  })
+}
 
 // Message listener
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === "ask") {
-    askAI(req.instruction, req.prompt).then(answer => sendResponse({ answer }));
+    console.log("fdsafdasddsfadsaff", req)
+    askAI(req.instruction, req.prompt).then(answer => {
+      sendResponse({ answer });
+      sendAnsToContent(answer);
+    });
     return true;
-  } else if (req.action === "getApiKeyStatus") {
-    sendResponse({ hasApiKey: !!(apiKey) });
-  }
+  } 
   return true;
 });

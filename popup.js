@@ -112,7 +112,7 @@ function getAIAnswerForQuestion(index) {
   
   const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer index (numbers like 1,2,3).`;
   
-  chrome.runtime.sendMessage({ action: "ask", instruction: instruction, prompt: prompt }, (response) => {
+  chrome.runtime.sendMessage({ action: "ask", instruction: instruction, prompt: question.prompt }, (response) => {
     console.log("afg");
     if (response?.answer) {
       document.getElementById(`aiAnswer${index}`).innerHTML = 
@@ -181,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
+        console.log(response);
         instruction = response.instruction;
         if (response?.questions && response.questions.length > 0) {
           displayQuestions(response.questions);

@@ -1,3 +1,21 @@
+let currentQuestions = [];
+const serializer = {
+      MCQ: (q) => ({
+          question: q.text,
+          answers: q.answers.map(a => a.text),
+          prompt: q.prompt
+        }),
+      checkBox: (q) => ({
+          question: q.text,
+          answers: q.answers.map(a => a.text),
+          prompt: q.prompt
+        }),
+      other: (q) => ({
+          question: q.text,
+          answers: q.answers.map(a => a.text),
+          prompt: q.prompt
+        }),
+    };
 const QUESTION_BUILDER = {
   MCQ(q) {
     return {
@@ -9,7 +27,7 @@ const QUESTION_BUILDER = {
                 element: a,
                 input: a.querySelector('input[type="radio"]')
             })),
-            prompt: `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ')}. Provide only the correct answer index (numbers like 1,2,3).`
+            prompt: `Quiz question: "${this.text}". Available answers: ${this.answers?.map(a => a.text)?.join(', ')}. Provide only the correct answer index (numbers like 1,2,3).`
         };
   },
 
@@ -23,7 +41,7 @@ const QUESTION_BUILDER = {
             element: a,
             input: a.querySelector('input[type="checkbox"]')
         })),
-        prompt: `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ')}. Provide one or multiple correct answer index (numbers like 1,2,3) in square brackets like [1,2].`
+        prompt: `Quiz question: "${this.text}". Available answers: ${this.answers?.map(a => a.text)?.join(', ')}. Provide one or multiple correct answer index (like [1,2]; [3]; [1,3,4]) in square brackets like [1,2].`
     };
     },
   other(q){
@@ -38,26 +56,9 @@ const QUESTION_BUILDER = {
     };
   }
 };
-const serializer = {
-  MCQ: currentQuestions.map(q => ({
-      question: q.text,
-      answers: q.answers.map(a => a.text),
-      prompt: q.prompt
-    })),
-  checkBox: currentQuestions.map(q => ({
-      question: q.text,
-      answers: q.answers.map(a => a.text),
-      prompt: q.prompt
-    })),
-  other: currentQuestions.map(q => ({
-      question: q.text,
-      answers: q.answers.map(a => a.text),
-      prompt: q.prompt
-    })),
-};
+
 
 // Store for previously answered questions
-let currentQuestions = [];
 console.log('v2')
 // Function to extract all questions from the page
 
@@ -129,9 +130,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse(result);
   } else if (request.action === "getQuestions") {
     currentQuestions = extractAllQuestions();
+    console.log('mebat ca')
     sendResponse({ 
       instruction: document.querySelector("#quiz-instructions ")?.innerText || "",
-      questions: currentQuestions.map(q => serializer[q.type]?.(q) || q)
+      questions: currentQuestions.map(q => serializer[q.type](q))
   })} else if (request.action === "answerQuestion") {
     const { questionIndex, answer } = request;
     const result = selectAnswer(questionIndex, answer);
@@ -157,7 +159,7 @@ if (document.readyState === 'loading') {
   setTimeout(() => {
     currentQuestions = extractAllQuestions();
     if (currentQuestions.length > 0) {
-      console.log(QUESTION_BUILDER.MCQ(document.querySelector(".question")))
+      console.log(currentQuestions)
       console.log(`Page loaded with ${currentQuestions.length} question(s)`);
     }
   }, 500);
