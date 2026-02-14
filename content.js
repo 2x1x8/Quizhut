@@ -1,21 +1,44 @@
 let currentQuestions = [];
-const serializer = {
+let questionPayloads = [];
+let answers = [];
+let instruction = "";
+const ANSWER_SELECTOR = {
+  MCQ: (q, ans) => {
+    ans = parseInt(ans)
+    q.answers[ans - 1].input.click()
+  },
+  checkBox: (q, ans) => {
+    ans = JSON.parse(ans);
+    q.answers.forEach((a)=>{
+      a.input.checked = false
+    });
+    ans.forEach((a) =>{
+      a = parseInt(a)
+      q.answers[a - 1].input.click()
+    });
+  },
+  other: (q, ans) => {}
+}
+const PAYLOAD_BUILDER = {
       MCQ: (q) => ({
+          type: "MCQ",
           question: q.text,
           answers: q.answers.map(a => a.text),
           prompt: q.prompt
         }),
       checkBox: (q) => ({
+          type: "checkBox",
           question: q.text,
           answers: q.answers.map(a => a.text),
           prompt: q.prompt
         }),
       other: (q) => ({
+          type: "other",
           question: q.text,
           answers: q.answers.map(a => a.text),
           prompt: q.prompt
         }),
-    };
+};
 const QUESTION_BUILDER = {
   MCQ(q) {
     return {
@@ -27,7 +50,7 @@ const QUESTION_BUILDER = {
                 element: a,
                 input: a.querySelector('input[type="radio"]')
             })),
-            prompt: `Quiz question: "${this.text}". Available answers: ${this.answers?.map(a => a.text)?.join(', ')}. Provide only the correct answer index (numbers like 1,2,3).`
+            prompt: `Quiz question: "${q.querySelector(".question_text").innerText}". Available answers: ${Array.from(q.querySelectorAll(".answer"), a => a.innerText)}. Provide only the correct index of the answer, NOT THE ANSWER ITSELF (numbers like 1,2,3).`
         };
   },
 
@@ -41,7 +64,7 @@ const QUESTION_BUILDER = {
             element: a,
             input: a.querySelector('input[type="checkbox"]')
         })),
-        prompt: `Quiz question: "${this.text}". Available answers: ${this.answers?.map(a => a.text)?.join(', ')}. Provide one or multiple correct answer index (like [1,2]; [3]; [1,3,4]) in square brackets like [1,2].`
+        prompt: `Quiz question: "${q.querySelector(".question_text").innerText}". Available answers: ${Array.from(q.querySelectorAll(".answer"), a => a.innerText)}. Provide one or multiple correct index of the answer, NOT THE ANSWER ITSELF (like [1,2]; [3]; [1,3,4]) in square brackets like [1,2].`
     };
     },
   other(q){
@@ -52,115 +75,77 @@ const QUESTION_BUILDER = {
         answers: Array.from(q.querySelectorAll(".answer"), a => ({
             text: a.innerText,
             element: a,
-        }))
+        })),    
+        prompt: `Quiz question: "${q.querySelector(".question_text").innerText}".`      
     };
   }
 };
-
-
-// Store for previously answered questions
-console.log('v2')
-// Function to extract all questions from the page
-
- 
 function questionFactory(q) {
   if (q.querySelectorAll('input[type="radio"]').length > 0) return QUESTION_BUILDER.MCQ(q);
-  if (q.querySelectorAll('input[type="checkbox"]').length > 0) return QUESTION_BUILDER.checkBox(q);
+  else if (q.querySelectorAll('input[type="checkbox"]').length > 0) return QUESTION_BUILDER.checkBox(q);
   return QUESTION_BUILDER.other(q);
 }
 
 
+//---------------------------------------------------QUESTION EXTRACTION AND SELECTION LOGIC------------------------------------------------------------ 
+
 function extractAllQuestions() {
   const questions_elements = document.querySelectorAll(".question");
   const questions = Array.from(questions_elements, q => questionFactory(q));
+  if (questions.length === 0) {
+    console.log("No questions found on this page.");
+  }
+  console.log(`Found ${questions.length} question(s)`);
   return questions;
 }
 
-// Helper function to get full text including nested elements
-
-
-// Function to scan page and extract questions (without auto-answering)
-function scanPageForQuestions() {
-  currentQuestions = extractAllQuestions();
-  
-  if (currentQuestions.length === 0) {
-    console.log("No questions found on this page.");
-    return { success: false, message: "No questions found" };
-  }
-  
-  console.log(`Found ${currentQuestions.length} question(s)`);
-  return { success: true, count: currentQuestions.length };
-}
-
 // Function to select an answer on the webpage
-function selectAnswer(questionIndex, answerText) {
-  if (!currentQuestions[questionIndex]) {
-    return { success: false, message: "Question not found" };
-  }
-  
-  const question = currentQuestions[questionIndex];
-  const answer = question.answers.find(a => 
-    a.text.toLowerCase().includes(answerText.toLowerCase()) ||
-    answerText.toLowerCase().includes(a.text.toLowerCase())
-  );
-  
-  if (answer && answer.input) {
-    answer.input.click();
-    answer.input.checked = true;
-    
-    // Trigger change event if needed
-    const event = new Event('change', { bubbles: true });
-    answer.input.dispatchEvent(event);
-    
-    console.log(`Answered: ${question.text.substring(0, 50)}... -> ${answerText}`);
-    return { success: true };
-  } else if (answer && answer.element) {
-    answer.element.click();
-    console.log(`Answered via element: ${question.text.substring(0, 50)}... -> ${answerText}`);
-    return { success: true };
-  }
-  
-  return { success: false, message: "Could not find answer element" };
+function selectAnswer(answer) {
+  if (currentQuestions) {
+    console.log(Array.isArray(answers));
+    console.log(answers);
+    answer.forEach((ans, index) => {
+      var q = currentQuestions[index]
+      ANSWER_SELECTOR[q.type](q, ans)
+    });
+    return true;
+  } 
+  return false;
 }
+//---------------------------------------------------LISTENERS-----------------------------------------------------------------
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "scanPage") {
-    const result = scanPageForQuestions();
-    sendResponse(result);
-  } else if (request.action === "getQuestions") {
-    currentQuestions = extractAllQuestions();
-    console.log('mebat ca')
-    sendResponse({ 
-      instruction: document.querySelector("#quiz-instructions ")?.innerText || "",
-      questions: currentQuestions.map(q => serializer[q.type](q))
-  })} else if (request.action === "answerQuestion") {
-    const { questionIndex, answer } = request;
-    const result = selectAnswer(questionIndex, answer);
-    if (result.success) {
-    }
+  if (request.action === "getQuestions") {
+    init();
+    sendResponse({instruction: instruction, questions: questionPayloads})
+  } else if (request.action === "answerQuestion") {
+    answers = request.answer;
+    const result = selectAnswer(answers);
     sendResponse(result);
   }
   return true;
 });
 
-// Initialize when page loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      // Just extract questions without auto-answering
-      currentQuestions = extractAllQuestions();
-      if (currentQuestions.length > 0) {
-        console.log(`Page loaded with ${currentQuestions.length} question(s)`);
+//---------------------------------------------------SEND MESSAGE------------------------------------------------------------
+async function init() {
+  currentQuestions = extractAllQuestions();
+  questionPayloads = currentQuestions.map(q => PAYLOAD_BUILDER[q.type](q));
+  instruction = document.querySelector("#quiz-instructions ")?.innerText || "";
+  chrome.runtime.sendMessage({
+      action: "processItems", 
+      instruction: instruction, 
+      questions: questionPayloads
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log("Error sending message:");
+        console.error("Message failed:", chrome.runtime.lastError);
+        return;
+      } else {
+        console.log("Questions sent to background script");
       }
-    }, 1000);
-  });
-} else {
-  setTimeout(() => {
-    currentQuestions = extractAllQuestions();
-    if (currentQuestions.length > 0) {
-      console.log(currentQuestions)
-      console.log(`Page loaded with ${currentQuestions.length} question(s)`);
-    }
-  }, 500);
+  });  
 }
+
+init();
+

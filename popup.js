@@ -27,9 +27,7 @@ document.getElementById("scan").addEventListener("click", () => {
 // Load questions button
 document.getElementById("answerAll").addEventListener("click", () => { 
   console.log(currentQuestions); 
-  currentQuestions.forEach((q, index) => { 
-    getAIAnswerForQuestion(index);
-  }); 
+  getAIAnswerForQuestion();
 });
 
 // Display questions in the popup
@@ -105,31 +103,28 @@ function displayQuestions(questions) {
 }
 
 // Get AI answer for specific question
-function getAIAnswerForQuestion(index) {
-  const question = currentQuestions[index];
+function getAIAnswerForQuestion() {
   console.log("abcd");
-  if (!question) return;
-  
-  const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer index (numbers like 1,2,3).`;
-  
-  chrome.runtime.sendMessage({ action: "ask", instruction: instruction, prompt: question.prompt }, (response) => {
+  chrome.runtime.sendMessage({ action: "ask"}, (response) => {
     console.log("afg");
-    if (response?.answer) {
-      document.getElementById(`aiAnswer${index}`).innerHTML = 
-        `<strong>AI Answer:</strong> ${response.answer}`;
-      document.getElementById(`status${index}`).textContent = "Answered";
-      document.getElementById(`status${index}`).className = "status answered";
-      
-      // Auto-select the matching answer option if found
-      const answerIndex = parseInt(response.answer) - 1;
-      const answerOptions = document.querySelectorAll(`.answer-option[data-q="${index}"]`);
-      answerOptions[answerIndex].querySelector('input[type="radio"]').checked = true;
-      selectAnswerForQuestion(index);
-    } else {
-      console.log("No answer received from AI");
-      document.getElementById(`status${index}`).textContent = "Error";
-      document.getElementById(`status${index}`).className = "status error";
-    }
+    currentQuestions.forEach((question, index) => {
+      if (response[index]?.answer) {
+        document.getElementById(`aiAnswer${index}`).innerHTML = 
+          `<strong>AI Answer:</strong> ${response[index].answer}`;
+        document.getElementById(`status${index}`).textContent = "Answered";
+        document.getElementById(`status${index}`).className = "status answered";
+        
+        // Auto-select the matching answer option if found
+        const answerIndex = parseInt(response[index].answer) - 1;
+        const answerOptions = document.querySelectorAll(`.answer-option[data-q="${index}"]`);
+        answerOptions[answerIndex].querySelector('input[type="radio"]').checked = true;
+        selectAnswerForQuestion(index);
+      } else {
+        console.log("No answer received from AI");
+        document.getElementById(`status${index}`).textContent = "Error";
+        document.getElementById(`status${index}`).className = "status error";
+      }
+    });
   });
 }
 

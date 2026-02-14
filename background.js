@@ -1,7 +1,9 @@
-let apiKey = "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"; // Replace sk-your-actual-api-key-here
+let apiKey = "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";
 let quizQuestions = [];
+let instruction = "";
 
 async function askAI(instruction, prompt) {
+  console.log("Asking AI with prompt:", prompt);
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -9,13 +11,12 @@ async function askAI(instruction, prompt) {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`
       },
-      
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
         messages: [
           { 
             role: "system", 
-            content: `You are a quiz assistant. Provide the index of correct answer text (for example: 5, 6,...). If no answer is provided, provide your own answer. ${instruction}`
+            content: `You are a quiz assistant. Provide the correct answer. ${instruction}`
 
           },
           { role: "user", content: prompt }
@@ -44,21 +45,40 @@ function sendAnsToContent(ans) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.tabs.sendMessage(tabs[0].id, {
       action: "answerQuestion",
-      questionIndex: index,
-      answer: JSON.parse(ans)
+      answer: ans
     });
   })
 }
 
+async function getAnswers(instruction) {
+  return Promise.all(
+    quizQuestions.map(async (q) => {
+      try {
+        return await askAI(instruction, q.prompt);
+      } catch (err) {
+        console.error("Error asking AI for question:", q, err);
+        return null;
+      }
+    })
+  );
+};
+
+
+
 // Message listener
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === "ask") {
-    console.log("fdsafdasddsfadsaff", req)
-    askAI(req.instruction, req.prompt).then(answer => {
-      sendResponse({ answer });
-      sendAnsToContent(answer);
-    });
+    (async () => {
+      console.log("quizQuestions", quizQuestions);
+      answers = await getAnswers(instruction); 
+      console.log("AI answers",typeof answers ,answers);
+      sendResponse(answers);
+      sendAnsToContent(answers);
+    })();
     return true;
-  } 
+  } else if (req.action === "processItems") {
+    quizQuestions = req.questions;
+    instruction = req.instruction;
+  }
   return true;
 });
