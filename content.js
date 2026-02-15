@@ -32,6 +32,7 @@ const PAYLOAD_BUILDER = {
           answers: q.answers.map(a => a.text),
           prompt: q.prompt
         }),
+      
       other: (q) => ({
           type: "other",
           question: q.text,
@@ -66,7 +67,7 @@ const QUESTION_BUILDER = {
         })),
         prompt: `Quiz question: "${q.querySelector(".question_text").innerText}". Available answers: ${Array.from(q.querySelectorAll(".answer"), a => a.innerText)}. Provide one or multiple correct index of the answer, NOT THE ANSWER ITSELF (like [1,2]; [3]; [1,3,4]) in square brackets like [1,2].`
     };
-    },
+  },
   other(q){
     return {
         type: "other",
@@ -120,7 +121,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     init();
     sendResponse({instruction: instruction, questions: questionPayloads})
   } else if (request.action === "answerQuestion") {
+    
     answers = request.answer;
+    console.log("answers: ", answers)
     const result = selectAnswer(answers);
     sendResponse(result);
   }
@@ -132,6 +135,7 @@ async function init() {
   currentQuestions = extractAllQuestions();
   questionPayloads = currentQuestions.map(q => PAYLOAD_BUILDER[q.type](q));
   instruction = document.querySelector("#quiz-instructions ")?.innerText || "";
+  console.log(questionPayloads)
   chrome.runtime.sendMessage({
       action: "processItems", 
       instruction: instruction, 

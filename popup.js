@@ -1,6 +1,5 @@
 let currentQuestions = [];
 let instruction = "";
-console.log("ngu a")
 document.getElementById("scan").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     console.log(tabs[0]);

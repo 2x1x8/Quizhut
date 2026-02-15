@@ -1,8 +1,9 @@
 let apiKey = "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";
 let quizQuestions = [];
 let instruction = "";
-
+let answers = [];
 async function askAI(instruction, prompt) {
+  console.log("Asking AI with instruction:", instruction);
   console.log("Asking AI with prompt:", prompt);
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -27,12 +28,12 @@ async function askAI(instruction, prompt) {
     });
 
     const data = await res.json();
-    console.log("AI Response:", data.choices[0].message.content.trim());
+    
     if (!data.choices || !data.choices[0]) {
       console.error("API Error:", data);
       return "Error: " + (data.error?.message || "Unknown API error");
     }
-
+    console.log("AI Response:", data.choices[0].message.content.trim());
     return data.choices[0].message.content.trim();
 
   } catch (err) {
