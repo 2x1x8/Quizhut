@@ -12,29 +12,29 @@ const QUESTION_BUILDER = {
           text: a.innerText,
           element: a,
           input: a.querySelector('input[type="radio"]')
-      }))
+      }))   
       return {
-              type: "mcq",
-              text: text,
-              element: q,
-              answers: answers,
-              prompt: `Quiz question: "${text}". Available answers: ${answers.map(a => a.text)}. Provide only the correct index of the answer, NOT THE ANSWER ITSELF (numbers like 1,2,3).`,
-              select(ans){
-                ans = parseInt(ans)
-                this.answers[ans - 1].input.click()
-              }
+        type: "mcq",
+        text: text,
+        element: q,
+        answers: answers,
+        prompt: `Quiz question: "${text}". Available answers: ${answers.map(a => a.text)}. Provide only the correct index of the answer, NOT THE ANSWER ITSELF (numbers like 1,2,3).`,
+        select(ans){
+          ans = parseInt(ans)
+          this.answers[ans - 1].input.click()
+        }
       };
     }
   },
 
   checkbox:{
-    detect: ()=> !!q.querySelector('input[type="checkbox"]'),
+    detect: (q)=> !!q.querySelector('input[type="checkbox"]'),
     build(q) {
       const text = q.querySelector(".question_text").innerText
       const answers = Array.from(q.querySelectorAll(".answer"), a => ({
           text: a.innerText,
           element: a,
-          input: a.querySelector('input[type="radio"]')
+          input: a.querySelector('input[type="checkbox"]')
       }))
       return {
           type: "checkbox",
@@ -49,12 +49,16 @@ const QUESTION_BUILDER = {
           select(ans){
             ans = JSON.parse(ans);
             this.answers.forEach((a)=>a.input.checked = false);
+            ans.forEach((a) =>{
+                this.answers[a-1].input.click()
+              }
+            );
           }
-      }
+        }
       }
   },
   other:{
-    detect: (q) => {true},
+    detect: (q) => true,
     build(q){
       return {
           type: "other",
@@ -104,8 +108,8 @@ function selectAnswer(answer) {
     console.log(Array.isArray(answers));
     console.log(answers);
     answer.forEach((ans, index) => {
-      var q = currentQuestions[index]
-      ANSWER_SELECTOR[q.type](q, ans)
+      const q = currentQuestions[index]
+      q.select(ans)
     });
     return true;
   } 
