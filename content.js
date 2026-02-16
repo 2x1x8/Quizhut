@@ -2,91 +2,89 @@ let currentQuestions = [];
 let questionPayloads = [];
 let answers = [];
 let instruction = "";
-const ANSWER_SELECTOR = {
-  MCQ: (q, ans) => {
-    ans = parseInt(ans)
-    q.answers[ans - 1].input.click()
-  },
-  checkBox: (q, ans) => {
-    ans = JSON.parse(ans);
-    q.answers.forEach((a)=>{
-      a.input.checked = false
-    });
-    ans.forEach((a) =>{
-      a = parseInt(a)
-      q.answers[a - 1].input.click()
-    });
-  },
-  other: (q, ans) => {}
-}
-const PAYLOAD_BUILDER = {
-      MCQ: (q) => ({
-          type: "MCQ",
-          question: q.text,
-          answers: q.answers.map(a => a.text),
-          prompt: q.prompt
-        }),
-      checkBox: (q) => ({
-          type: "checkBox",
-          question: q.text,
-          answers: q.answers.map(a => a.text),
-          prompt: q.prompt
-        }),
-      
-      other: (q) => ({
-          type: "other",
-          question: q.text,
-          answers: q.answers.map(a => a.text),
-          prompt: q.prompt
-        }),
-};
+
 const QUESTION_BUILDER = {
-  MCQ(q) {
-    return {
-            type: "MCQ",
-            text: q.querySelector(".question_text").innerText,
-            element: q,
-            answers: Array.from(q.querySelectorAll(".answer"), a => ({
-                text: a.innerText,
-                element: a,
-                input: a.querySelector('input[type="radio"]')
-            })),
-            prompt: `Quiz question: "${q.querySelector(".question_text").innerText}". Available answers: ${Array.from(q.querySelectorAll(".answer"), a => a.innerText)}. Provide only the correct index of the answer, NOT THE ANSWER ITSELF (numbers like 1,2,3).`
-        };
+  mcq:{
+    detect: (q) => !!q.querySelector('input[type="radio"]'),
+    build(q){
+      const text = q.querySelector(".question_text").innerText
+      const answers = Array.from(q.querySelectorAll(".answer"), a => ({
+          text: a.innerText,
+          element: a,
+          input: a.querySelector('input[type="radio"]')
+      }))
+      return {
+              type: "mcq",
+              text: text,
+              element: q,
+              answers: answers,
+              prompt: `Quiz question: "${text}". Available answers: ${answers.map(a => a.text)}. Provide only the correct index of the answer, NOT THE ANSWER ITSELF (numbers like 1,2,3).`,
+              select(ans){
+                ans = parseInt(ans)
+                this.answers[ans - 1].input.click()
+              }
+      };
+    }
   },
 
-  checkBox(q) {
-    return {
-        type: "checkBox",
-        text: q.querySelector(".question_text").innerText,
-        element: q,
-        answers: Array.from(q.querySelectorAll(".answer"), a => ({
-            text: a.innerText,
-            element: a,
-            input: a.querySelector('input[type="checkbox"]')
-        })),
-        prompt: `Quiz question: "${q.querySelector(".question_text").innerText}". Available answers: ${Array.from(q.querySelectorAll(".answer"), a => a.innerText)}. Provide one or multiple correct index of the answer, NOT THE ANSWER ITSELF (like [1,2]; [3]; [1,3,4]) in square brackets like [1,2].`
-    };
+  checkbox:{
+    detect: ()=> !!q.querySelector('input[type="checkbox"]'),
+    build(q) {
+      const text = q.querySelector(".question_text").innerText
+      const answers = Array.from(q.querySelectorAll(".answer"), a => ({
+          text: a.innerText,
+          element: a,
+          input: a.querySelector('input[type="radio"]')
+      }))
+      return {
+          type: "checkbox",
+          text: q.querySelector(".question_text").innerText,
+          element: q,
+          answers: Array.from(q.querySelectorAll(".answer"), a => ({
+              text: a.innerText,
+              element: a,
+              input: a.querySelector('input[type="checkbox"]')
+          })),
+          prompt: `Quiz question: "${text}". Available answers: ${answers.map(a => a.text)}. Provide one or multiple correct index of the answer, NOT THE ANSWER ITSELF (like [1,2]; [3]; [1,3,4]) in square brackets like [1,2].`,
+          select(ans){
+            ans = JSON.parse(ans);
+            this.answers.forEach((a)=>a.input.checked = false);
+          }
+      }
+      }
   },
-  other(q){
-    return {
-        type: "other",
-        text: q.querySelector(".question_text").innerText,
-        element: q,
-        answers: Array.from(q.querySelectorAll(".answer"), a => ({
-            text: a.innerText,
-            element: a,
-        })),    
-        prompt: `Quiz question: "${q.querySelector(".question_text").innerText}".`      
-    };
+  other:{
+    detect: (q) => {true},
+    build(q){
+      return {
+          type: "other",
+          text: q.querySelector(".question_text").innerText,
+          element: q,
+          answers: Array.from(q.querySelectorAll(".answer"), a => ({
+              text: a.innerText,
+              element: a,
+          })),    
+          prompt: `Quiz question: "${q.querySelector(".question_text").innerText}".`,
+          select(ans){}      
+      };
+    }
   }
 };
 function questionFactory(q) {
-  if (q.querySelectorAll('input[type="radio"]').length > 0) return QUESTION_BUILDER.MCQ(q);
-  else if (q.querySelectorAll('input[type="checkbox"]').length > 0) return QUESTION_BUILDER.checkBox(q);
-  return QUESTION_BUILDER.other(q);
-}
-
+  for (let x in QUESTION_BUILDER){
+    if (QUESTION_BUILDER[x].detect(q)){
+      return QUESTION_BUILDER[x].build(q)
+    }
+  }
+};
+function buildPayload(q){ 
+  return ({
+          type: q.type,
+          question: q.text,
+          answers: q.answers.map(a => a.text),
+          prompt: q.prompt
+  })
+};
 
 //---------------------------------------------------QUESTION EXTRACTION AND SELECTION LOGIC------------------------------------------------------------ 
 
@@ -100,7 +98,7 @@ function extractAllQuestions() {
   return questions;
 }
 
-// Function to select an answer on the webpage
+// Function to select all answer on the webpage
 function selectAnswer(answer) {
   if (currentQuestions) {
     console.log(Array.isArray(answers));
@@ -133,7 +131,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 //---------------------------------------------------SEND MESSAGE------------------------------------------------------------
 async function init() {
   currentQuestions = extractAllQuestions();
-  questionPayloads = currentQuestions.map(q => PAYLOAD_BUILDER[q.type](q));
+  questionPayloads = currentQuestions.map(q => buildPayload(q));
   instruction = document.querySelector("#quiz-instructions ")?.innerText || "";
   console.log(questionPayloads)
   chrome.runtime.sendMessage({
