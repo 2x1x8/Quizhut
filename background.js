@@ -23,7 +23,7 @@ async function askAI(instruction, prompt) {
           { role: "user", content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 2048
       })
     });
 
@@ -40,15 +40,6 @@ async function askAI(instruction, prompt) {
     console.error("Network error:", err);
     return "Network error: " + err.message;
   }
-}
-
-function sendAnsToContent(ans) {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, {
-      action: "answerQuestion",
-      answer: ans
-    });
-  })
 }
 
 async function getAnswers(instruction) {
@@ -71,10 +62,9 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === "ask") {
     (async () => {
       console.log("quizQuestions", quizQuestions);
-      answers = await getAnswers(instruction); 
-      console.log("AI answers",typeof answers ,answers);
+      answers = await getAnswers(instruction);
+      console.log("AI answers", typeof answers, answers);
       sendResponse(answers);
-      sendAnsToContent(answers);
     })();
     return true;
   } else if (req.action === "processItems") {

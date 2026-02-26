@@ -2,21 +2,17 @@ let currentQuestions = [];
 let instruction = "";
 document.getElementById("scan").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    console.log(tabs[0]);
-    chrome.tabs.sendMessage(tabs[0].id, { action: "scanPage" }, (response) => {
+    if (!tabs || !tabs[0]) { showError("No active tab found."); return; }
+    chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
       if (chrome.runtime.lastError) {
-        showError("Please refresh the quiz page and try again.");
+        showError("Cannot reach page. Try refreshing the quiz page.");
+        return;
+      }
+      if (response && response.questions && response.questions.length > 0) {
+        displayQuestions(response.questions);
+        showSuccess("Loaded " + response.questions.length + " question(s)");
       } else {
-        setTimeout(() => {
-          chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
-            if (response?.questions) {
-              displayQuestions(response.questions);
-              showSuccess(`Loaded ${response.questions.length} question(s)`);
-            } else {
-              showError("No questions found. Make sure you're on a quiz page.");
-            }
-          });
-        }, 500);
+        showError("No questions found. Make sure you are on a quiz page.");
       }
     });
   });
@@ -101,28 +97,63 @@ function displayQuestions(questions) {
   });
 }
 
-// Get AI answer for specific question
+// Get AI answers for all questions and apply them to the page
 function getAIAnswerForQuestion() {
-  console.log("abcd");
-  chrome.runtime.sendMessage({ action: "ask"}, (response) => {
-    console.log("afg");
+  console.log("Requesting AI answers...");
+
+  currentQuestions.forEach((_, index) => {
+    const statusEl = document.getElementById("status" + index);
+    if (statusEl) { statusEl.textContent = "Processing"; statusEl.className = "status processing"; }
+  });
+
+  chrome.runtime.sendMessage({ action: "ask" }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error("Background error:", chrome.runtime.lastError.message);
+      currentQuestions.forEach((_, index) => {
+        const statusEl = document.getElementById("status" + index);
+        if (statusEl) { statusEl.textContent = "Error"; statusEl.className = "status error"; }
+      });
+      showError("AI error: " + chrome.runtime.lastError.message);
+      return;
+    }
+
+    if (!response || !Array.isArray(response)) {
+      console.error("No valid response from background:", response);
+      currentQuestions.forEach((_, index) => {
+        const statusEl = document.getElementById("status" + index);
+        if (statusEl) { statusEl.textContent = "Error"; statusEl.className = "status error"; }
+      });
+      showError("No answers returned from AI.");
+      return;
+    }
+
+    // Display answers in popup UI
     currentQuestions.forEach((question, index) => {
-      if (response[index]?.answer) {
-        document.getElementById(`aiAnswer${index}`).innerHTML = 
-          `<strong>AI Answer:</strong> ${response[index].answer}`;
-        document.getElementById(`status${index}`).textContent = "Answered";
-        document.getElementById(`status${index}`).className = "status answered";
-        
-        // Auto-select the matching answer option if found
-        const answerIndex = parseInt(response[index].answer) - 1;
-        const answerOptions = document.querySelectorAll(`.answer-option[data-q="${index}"]`);
-        answerOptions[answerIndex].querySelector('input[type="radio"]').checked = true;
-        selectAnswerForQuestion(index);
+      const ans = response[index];
+      const answerEl = document.getElementById("aiAnswer" + index);
+      const statusEl = document.getElementById("status" + index);
+      if (!answerEl || !statusEl) return;
+      if (ans != null && ans !== "") {
+        answerEl.innerHTML = "<strong>AI Answer:</strong> " + escapeHtml(String(ans));
+        statusEl.textContent = "Answered";
+        statusEl.className = "status answered";
       } else {
-        console.log("No answer received from AI");
-        document.getElementById(`status${index}`).textContent = "Error";
-        document.getElementById(`status${index}`).className = "status error";
+        answerEl.innerHTML = "<em style='color:#c00'>No answer received from AI</em>";
+        statusEl.textContent = "Error";
+        statusEl.className = "status error";
       }
+    });
+
+    // Send answers to content script — fire-and-forget (no callback) to avoid
+    // the "message port closed before response" error that a callback causes.
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) { showError("Could not find the active quiz tab."); return; }
+      chrome.tabs.sendMessage(tabs[0].id, { action: "answerQuestion", answer: response });
+      showSuccess("Answers applied to the quiz page!");
+      currentQuestions.forEach((_, index) => {
+        const statusEl = document.getElementById("status" + index);
+        if (statusEl) { statusEl.textContent = "Selected"; statusEl.className = "status selected"; }
+      });
     });
   });
 }
@@ -163,6 +194,30 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function showError(msg) {
+  let el = document.getElementById('_globalMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_globalMsg';
+    document.querySelector('.container').prepend(el);
+  }
+  el.className = 'error-message';
+  el.textContent = msg;
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 4000);
+}
+
+function showSuccess(msg) {
+  let el = document.getElementById('_globalMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_globalMsg';
+    document.querySelector('.container').prepend(el);
+  }
+  el.className = 'success-message';
+  el.textContent = msg;
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 3000);
 }
 
 
