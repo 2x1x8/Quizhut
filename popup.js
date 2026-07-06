@@ -1,23 +1,18 @@
 let currentQuestions = [];
 let instruction = "";
-console.log("ngu a")
 document.getElementById("scan").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    console.log(tabs[0]);
-    chrome.tabs.sendMessage(tabs[0].id, { action: "scanPage" }, (response) => {
+    if (!tabs || !tabs[0]) { showError("No active tab found."); return; }
+    chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
       if (chrome.runtime.lastError) {
-        showError("Please refresh the quiz page and try again.");
+        showError("Cannot reach page. Try refreshing the quiz page.");
+        return;
+      }
+      if (response && response.questions && response.questions.length > 0) {
+        displayQuestions(response.questions);
+        showSuccess("Loaded " + response.questions.length + " question(s)");
       } else {
-        setTimeout(() => {
-          chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
-            if (response?.questions) {
-              displayQuestions(response.questions);
-              showSuccess(`Loaded ${response.questions.length} question(s)`);
-            } else {
-              showError("No questions found. Make sure you're on a quiz page.");
-            }
-          });
-        }, 500);
+        showError("No questions found. Make sure you are on a quiz page.");
       }
     });
   });
@@ -27,9 +22,7 @@ document.getElementById("scan").addEventListener("click", () => {
 // Load questions button
 document.getElementById("answerAll").addEventListener("click", () => { 
   console.log(currentQuestions); 
-  currentQuestions.forEach((q, index) => { 
-    getAIAnswerForQuestion(index);
-  }); 
+  getAIAnswerForQuestion();
 });
 
 // Display questions in the popup
@@ -104,32 +97,64 @@ function displayQuestions(questions) {
   });
 }
 
-// Get AI answer for specific question
-function getAIAnswerForQuestion(index) {
-  const question = currentQuestions[index];
-  console.log("abcd");
-  if (!question) return;
-  
-  const prompt = `Quiz question: "${question.question}". Available answers: ${question.answers?.join(', ') || 'Not specified'}. Provide only the correct answer index (numbers like 1,2,3).`;
-  
-  chrome.runtime.sendMessage({ action: "ask", instruction: instruction, prompt: prompt }, (response) => {
-    console.log("afg");
-    if (response?.answer) {
-      document.getElementById(`aiAnswer${index}`).innerHTML = 
-        `<strong>AI Answer:</strong> ${response.answer}`;
-      document.getElementById(`status${index}`).textContent = "Answered";
-      document.getElementById(`status${index}`).className = "status answered";
-      
-      // Auto-select the matching answer option if found
-      const answerIndex = parseInt(response.answer) - 1;
-      const answerOptions = document.querySelectorAll(`.answer-option[data-q="${index}"]`);
-      answerOptions[answerIndex].querySelector('input[type="radio"]').checked = true;
-      selectAnswerForQuestion(index);
-    } else {
-      console.log("No answer received from AI");
-      document.getElementById(`status${index}`).textContent = "Error";
-      document.getElementById(`status${index}`).className = "status error";
+// Get AI answers for all questions and apply them to the page
+function getAIAnswerForQuestion() {
+  console.log("Requesting AI answers...");
+
+  currentQuestions.forEach((_, index) => {
+    const statusEl = document.getElementById("status" + index);
+    if (statusEl) { statusEl.textContent = "Processing"; statusEl.className = "status processing"; }
+  });
+
+  chrome.runtime.sendMessage({ action: "ask" }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error("Background error:", chrome.runtime.lastError.message);
+      currentQuestions.forEach((_, index) => {
+        const statusEl = document.getElementById("status" + index);
+        if (statusEl) { statusEl.textContent = "Error"; statusEl.className = "status error"; }
+      });
+      showError("AI error: " + chrome.runtime.lastError.message);
+      return;
     }
+
+    if (!response || !Array.isArray(response)) {
+      console.error("No valid response from background:", response);
+      currentQuestions.forEach((_, index) => {
+        const statusEl = document.getElementById("status" + index);
+        if (statusEl) { statusEl.textContent = "Error"; statusEl.className = "status error"; }
+      });
+      showError("No answers returned from AI.");
+      return;
+    }
+
+    // Display answers in popup UI
+    currentQuestions.forEach((question, index) => {
+      const ans = response[index];
+      const answerEl = document.getElementById("aiAnswer" + index);
+      const statusEl = document.getElementById("status" + index);
+      if (!answerEl || !statusEl) return;
+      if (ans != null && ans !== "") {
+        answerEl.innerHTML = "<strong>AI Answer:</strong> " + escapeHtml(String(ans));
+        statusEl.textContent = "Answered";
+        statusEl.className = "status answered";
+      } else {
+        answerEl.innerHTML = "<em style='color:#c00'>No answer received from AI</em>";
+        statusEl.textContent = "Error";
+        statusEl.className = "status error";
+      }
+    });
+
+    // Send answers to content script — fire-and-forget (no callback) to avoid
+    // the "message port closed before response" error that a callback causes.
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) { showError("Could not find the active quiz tab."); return; }
+      chrome.tabs.sendMessage(tabs[0].id, { action: "answerQuestion", answer: response });
+      showSuccess("Answers applied to the quiz page!");
+      currentQuestions.forEach((_, index) => {
+        const statusEl = document.getElementById("status" + index);
+        if (statusEl) { statusEl.textContent = "Selected"; statusEl.className = "status selected"; }
+      });
+    });
   });
 }
 
@@ -171,6 +196,30 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function showError(msg) {
+  let el = document.getElementById('_globalMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_globalMsg';
+    document.querySelector('.container').prepend(el);
+  }
+  el.className = 'error-message';
+  el.textContent = msg;
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 4000);
+}
+
+function showSuccess(msg) {
+  let el = document.getElementById('_globalMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_globalMsg';
+    document.querySelector('.container').prepend(el);
+  }
+  el.className = 'success-message';
+  el.textContent = msg;
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 3000);
+}
+
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
@@ -181,6 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "getQuestions" }, (response) => {
+        console.log(response);
         instruction = response.instruction;
         if (response?.questions && response.questions.length > 0) {
           displayQuestions(response.questions);
