@@ -1,4 +1,5 @@
-let apiKey = "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"; // Replace sk-your-actual-api-key-here
+let apiKey = "AQ.Ab8RN6LNXrf0hovwbXpfXWR2pDrFww60-O_UMT6Haw-kRNcuAQ"; // Replace sk-your-actual-api-key-here
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 const statusMessages = {
   200: "OK",
   400: "Bad Request",
@@ -18,29 +19,33 @@ let quizQuestions = [];
 let instruction = "";
 let answers = [];
 async function askAI(instruction, prompt) {
+  const requestBody = {
+  system_instruction: {
+    parts: [{ text: `You are a quiz assistant. Provide the correct answer. ${instruction}` }]
+  },
+  // 3. Gemini uses 'contents' instead of 'messages'
+  contents: [
+    {
+      role: "user",
+      parts: [{ text: prompt }]
+    }
+  ],
+  // 4. Configuration settings go inside 'generationConfig'
+  generationConfig: {
+    temperature: 0.3,
+    maxOutputTokens: 2048 // Note the camelCase
+  }
+  }
   console.log("Asking AI with instruction:", instruction);
   console.log("Asking AI with prompt:", prompt);
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          { 
-            role: "system", 
-            content: `You are a quiz assistant. Provide the correct answer. ${instruction}`
-
-          },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 2048
-      })
-    });
+      body: JSON.stringify(requestBody)
+  });
 
     const data = await res.json();
     
