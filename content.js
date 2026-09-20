@@ -251,6 +251,7 @@ function questionFactory(q) {
   console.log("questionFactory type:", rawType, "->", mappedType);
   return QUESTION_BUILDER[mappedType](q);
 };
+
 function buildPayload(q){ 
   return ({
           type: q.type,
@@ -259,6 +260,7 @@ function buildPayload(q){
           prompt: q.prompt
   })
 };
+
 
 //---------------------------------------------------QUESTION EXTRACTION AND SELECTION LOGIC------------------------------------------------------------ 
 
@@ -354,5 +356,6 @@ async function init() {
       }
   });  
 }
+
 
 init();

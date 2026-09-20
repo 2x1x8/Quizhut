@@ -1,5 +1,5 @@
 let apiKey = "AQ.Ab8RN6LNXrf0hovwbXpfXWR2pDrFww60-O_UMT6Haw-kRNcuAQ"; // Replace sk-your-actual-api-key-here
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 const statusMessages = {
   200: "OK",
   400: "Bad Request",
@@ -20,22 +20,20 @@ let instruction = "";
 let answers = [];
 async function askAI(instruction, prompt) {
   const requestBody = {
-  system_instruction: {
-    parts: [{ text: `You are a quiz assistant. Provide the correct answer. ${instruction}` }]
-  },
-  // 3. Gemini uses 'contents' instead of 'messages'
-  contents: [
-    {
-      role: "user",
-      parts: [{ text: prompt }]
+    system_instruction: {
+      parts: [{ text: `You are a quiz assistant. Provide the correct answer. ${instruction}` }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 2048 
     }
-  ],
-  // 4. Configuration settings go inside 'generationConfig'
-  generationConfig: {
-    temperature: 0.3,
-    maxOutputTokens: 2048 // Note the camelCase
-  }
-  }
+  };
   console.log("Asking AI with instruction:", instruction);
   console.log("Asking AI with prompt:", prompt);
   try {
@@ -49,12 +47,14 @@ async function askAI(instruction, prompt) {
 
     const data = await res.json();
     
-    if (!data.choices || !data.choices[0]) {
+    //check if response is valid
+    if (!data.candidates || !data.candidates[0]) {
       console.error("API Error:", data);
       return "Error: " + (data.error?.message || "Unknown API error");
     }
-    console.log("AI Response:", data.choices[0].message.content.trim());
-    return data.choices[0].message.content.trim();
+    let AIresponse = data.candidates[0].content.parts[0].text.trim();
+    console.log("AI Response:", AIresponse);
+    return AIresponse;
 
   } catch (err) {
     console.error("Network error:", err);
